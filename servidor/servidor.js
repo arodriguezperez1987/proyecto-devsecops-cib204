@@ -15,7 +15,8 @@
 
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
+const { isIP } = require('node:net');
 const cifrado = require('./cifrado');
 const db = require('./db');
 const config = require('./config');
@@ -82,24 +83,87 @@ app.get('/buscar', (req, res) => {
 //   Lo detectan Semgrep y CodeQL (js/code-injection).
 //   CWE-95 (Eval Injection)
 app.post('/calcular', (req, res) => {
-  const expresion = req.body.expresion || '0';
-  try {
-    const resultado = eval(expresion);
-    res.json({ resultado });
-  } catch (e) {
-    res.status(400).json({ error: 'Expresion invalida' });
-  }
-});
+  const expresion = req.body?.expresion;
 
+  if (typeof expresion !== 'string') {
+    return res.status(400).json({
+      error: 'Expresion invalida'
+    });
+  }
+
+  const patron = /^\s*(-?\d+(?:\.\d+)?)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)\s*$/;
+  const coincidencia = expresion.match(patron);
+
+  if (!coincidencia) {
+    return res.status(400).json({
+      error: 'Expresion invalida'
+    });
+  }
+
+  const numero1 = Number(coincidencia[1]);
+  const operador = coincidencia[2];
+  const numero2 = Number(coincidencia[3]);
+
+  let resultado;
+
+  switch (operador) {
+    case '+':
+      resultado = numero1 + numero2;
+      break;
+    case '-':
+      resultado = numero1 - numero2;
+      break;
+    case '*':
+      resultado = numero1 * numero2;
+      break;
+    case '/':
+      if (numero2 === 0) {
+        return res.status(400).json({
+          error: 'Division entre cero no permitida'
+        });
+      }
+      resultado = numero1 / numero2;
+      break;
+  }
+
+  if (!Number.isFinite(resultado)) {
+    return res.status(400).json({
+      error: 'Resultado fuera de rango'
+    });
+  }
+
+  return res.json({ resultado });
+});
 // [VULN-10] Inyeccion de comandos del sistema operativo.
 //   El parametro 'host' entra sin sanitizar a exec(). Un atacante puede enviar
 //   "8.8.8.8; cat /etc/passwd". Lo detectan CodeQL y Semgrep.
 //   CWE-78 (OS Command Injection)
 app.get('/diagnostico', (req, res) => {
   const host = req.query.host || '127.0.0.1';
-  exec('ping -c 1 ' + host, (err, stdout, stderr) => {
-    res.json({ salida: stdout, error: stderr });
-  });
+
+  if (typeof host !== 'string' || isIP(host) === 0) {
+    return res.status(400).json({
+      error: 'Direccion IP invalida'
+    });
+  }
+
+  execFile(
+    'ping',
+    ['-c', '1', '--', host],
+    { timeout: 5000 },
+    (err, stdout, stderr) => {
+      if (err) {
+        return res.status(500).json({
+          error: 'No fue posible completar el diagnostico'
+        });
+      }
+
+      return res.json({
+        salida: stdout,
+        error: stderr
+      });
+    }
+  );
 });
 
 if (require.main === module) {
