@@ -19,7 +19,7 @@ const { exec } = require('child_process');
 const cifrado = require('./cifrado');
 const db = require('./db');
 const config = require('./config');
-const { requiereAuth } = require('./auth');
+const { requireAuth: requiereAuth } = require('./auth');
 
 const app = express();
 app.use(express.json());
