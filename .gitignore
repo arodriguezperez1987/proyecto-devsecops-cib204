@@ -1,9 +1,18 @@
 # Dependencias
 node_modules/
 
-# Nota didactica (rama inseguro): a proposito NO se ignoran .env ni *.pem,
-# por eso quedan versionados y Gitleaks los detecta. En la rama solucion se
-# agregan las lineas:
-#   .env
-#   *.pem
-#   clave_privada*.pem
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Claves privadas
+*.pem
+
+# Archivos temporales de Expo
+.expo/
+
+# Registros
+*.log
+
+/proyecto-devsecops-cib204/
