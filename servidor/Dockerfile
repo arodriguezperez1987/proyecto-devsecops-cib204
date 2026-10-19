@@ -18,4 +18,5 @@ COPY --chown=nonroot:nonroot . .
 
 EXPOSE 3000
 
+USER 65532:65532
 CMD ["servidor.js"]
