@@ -51,14 +51,28 @@ app.post('/cifrar', requiereAuth, (req, res) => {
     // [VULN-7] Sin validacion de entrada: no se controla tipo ni tamano.
     //   Un cuerpo enorme o de tipo inesperado puede tumbar el servicio.
     //   CWE-20 (Improper Input Validation)
-    const texto = req.body.texto;
-    const resultado = cifrado.cifrar(texto, llaves.publicKey);
-    res.json({ cifrado: resultado });
+    const texto = req.body?.texto;
+
+// Validar tipo, contenido y longitud del texto
+if (
+  typeof texto !== 'string' ||
+  texto.trim().length === 0 ||
+  texto.length > 180
+) {
+  return res.status(400).json({
+    error: 'El texto debe contener entre 1 y 180 caracteres'
+  });
+}
+
+const resultado = cifrado.cifrar(texto, llaves.publicKey);
+res.json({ cifrado: resultado });
   } catch (e) {
-    // [VULN-8] Exposicion de detalles internos: se devuelve el stack al cliente.
-    //   CWE-209 (Information Exposure Through an Error Message)
-    res.status(500).json({ error: e.message, stack: e.stack });
-  }
+  console.error('Error durante el cifrado:', e);
+
+  return res.status(500).json({
+    error: 'No fue posible procesar la solicitud de cifrado'
+  });
+}
 });
 
 app.post('/descifrar', requiereAuth, (req, res) => {
