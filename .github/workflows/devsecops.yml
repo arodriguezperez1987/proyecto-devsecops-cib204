@@ -16,6 +16,7 @@ jobs:
   # ==========================================================================
   # 1) SAST con Semgrep  ->  detecta eval(), inyeccion SQL/comandos, JWT, CORS
   # ==========================================================================
+ 
   sast_semgrep:
     name: SAST - Semgrep
     runs-on: ubuntu-latest
@@ -23,17 +24,18 @@ jobs:
       image: semgrep/semgrep
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
       - name: Ejecutar Semgrep
-        # --error hace fallar el job si hay hallazgos; se guarda el SARIF.
-       run: |
+        run: |
           semgrep scan \
             --config p/default \
             --config p/javascript \
             --config p/nodejs \
-            --exclude-rule javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage \
+            --exclude-rule javascript.express.security.audit.express-check-csrf-middleware-usage.express-check-csrf-middleware-usage \
             --error \
             --sarif \
             --output semgrep.sarif .
+
       - name: Guardar reporte Semgrep
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
